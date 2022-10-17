@@ -54,10 +54,6 @@ namespace GI_AssetHasher
                            try
                            {
                                mappedDictionary = JsonConvert.DeserializeObject<Dictionary<ulong, string>>(File.ReadAllText(o.mappedFile))!;
-                               foreach (var kvp in mappedDictionary)
-                               {
-                                   mappedDictionary[kvp.Key] = kvp.Value.Replace("LuaBytes", "Lua");
-                               }
                            }
                            catch
                            {
@@ -75,6 +71,7 @@ namespace GI_AssetHasher
                            {
                                throw new ArgumentException();
                            }
+
                            Console.WriteLine("Loaded Raw Names: {0}", rawNames.Length);
                            if (mappedDictionary is not null)
                            {
@@ -85,6 +82,7 @@ namespace GI_AssetHasher
                            {
                                mappedDictionary = new Dictionary<ulong, string>();
                            }
+
                            foreach (var rawName in rawNames)
                            {
                                foreach (var type in typeList!)
@@ -92,17 +90,15 @@ namespace GI_AssetHasher
                                    var flag = mappedDictionary.TryAdd(Hashing.GetPathHash(rawName + type), rawName.Replace("LuaBytes", "Lua"));
                                    if (!flag)
                                    {
-                                       if (mappedDictionary[Hashing.GetPathHash(rawName + type)] != rawName.Replace("LuaBytes", "Lua"))
+                                       var hash = Hashing.GetPathHash(rawName + type);
+                                       foreach (var ttype in typeList)
                                        {
-                                           var hash = Hashing.GetPathHash(rawName + type);
-                                           foreach (var ttype in typeList)
+                                           if (Hashing.GetPathHash(mappedDictionary[hash] + ttype) == hash)
                                            {
-                                               if (Hashing.GetPathHash(mappedDictionary[hash] + ttype) == hash)
-                                               {
-                                                   Console.WriteLine("Overlap Found Ignoring: {0}", rawName + type);
-                                               }
+                                               Console.WriteLine("Overlap Found Ignoring: {0}", rawName + type);
                                            }
                                        }
+
                                    }
                                }
                            }
