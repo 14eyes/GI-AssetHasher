@@ -1,13 +1,6 @@
-﻿using CommandLine.Text;
-using CommandLine;
+﻿using CommandLine;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Xml.Linq;
-using static GI_AssetHasher.AssetIndex;
 
 namespace GI_AssetHasher
 {
@@ -26,6 +19,9 @@ namespace GI_AssetHasher
 
             [Option('m', "mapped", Required = false, HelpText = "Path to json mapping the hash to filename")]
             public string? mappedFile { get; set; }
+
+            [Option('M', "manual", Required = false, HelpText = "Turns on manual mode")]
+            public bool manualMode { get; set; }
         }
         internal static AssetIndex? assetIndex { get; set; }
         internal static string[]? rawNames { get; set; }
@@ -103,15 +99,109 @@ namespace GI_AssetHasher
                                }
                            }
                        }
-                       if (o.mappedFile is null && o.rawNamesFile is null)
+                       if (o.mappedFile is null && o.rawNamesFile is null && o.manualMode is false)
                        {
                            throw new ArgumentException();
                        }
-                       Start();
-                       Console.WriteLine("Saving");
+                       if (o.manualMode)
+                       {
+                           StartManuaMode();
+                       }
+                       else
+                       {
+                           Start();
+                       }
+                       Console.WriteLine("Saving...");
                        File.WriteAllText(o.outputFile!, JsonConvert.SerializeObject(assetIndex, Formatting.Indented));
                    });
         }
+
+        private static void StartManuaMode()
+        {
+            Console.WriteLine("Starting in Manual mode...  Have fun testing strings by hand :)");
+            var prevName = "";
+            foreach (var curSubAssets in assetIndex!.SubAssets)
+            {
+                var unmatchedCount = curSubAssets.Value.Count(item => item.Name == string.Empty);
+                if (unmatchedCount == 0)
+                {
+                    prevName = curSubAssets.Value[curSubAssets.Value.Count - 1].Name;
+                }
+                else
+                {
+                    for (int i = 0; i < curSubAssets.Value.Count; i++)
+                    {
+                        if (!string.IsNullOrEmpty(curSubAssets.Value[i].Name))
+                        {
+                            prevName = curSubAssets.Value[i].Name;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Previous asset: " + prevName);
+                            var nextflag = false;
+                            for (var j = i; j < curSubAssets.Value.Count; j++)
+                            {
+                                if (!string.IsNullOrEmpty(curSubAssets.Value[j].Name))
+                                {
+                                    Console.WriteLine("Next asset: " + curSubAssets.Value[j].Name);
+                                    nextflag = true;
+                                    break;
+                                }
+                            }
+                            if (!nextflag)
+                            {
+                                var nextSubAssets = (from asset in assetIndex.SubAssets
+                                                     where asset.Key > curSubAssets.Key && asset.Value.Count(item => item.Name is not "") > 0
+                                                     select asset).FirstOrDefault().Value;
+
+                                if (nextSubAssets != null)
+                                {
+                                    Console.WriteLine("Next asset: " + nextSubAssets.First(x=> x.Name is not ""));
+                                }
+                            }
+                            var flag = true;
+                            while (flag)
+                            {
+                                var text = Console.ReadLine();
+                                switch (text)
+                                {
+                                    case "skip":
+                                        Console.Clear();
+                                        Console.WriteLine("Skipping...");
+                                        break;
+                                    case "exit":
+                                        Console.Clear();
+                                        Console.WriteLine("Exiting...");
+                                        return;
+                                    default:
+                                        var subAssetInfo = curSubAssets.Value[i];
+                                        foreach (string type in typeList!)
+                                        {
+                                            if (Hashing.PreLastToHash(subAssetInfo.PathHashPre, subAssetInfo.PathHashLast) == Hashing.GetPathHash(text + type))
+                                            {
+                                                subAssetInfo.Name = text;
+                                                Console.WriteLine("Success!!");
+                                                File.AppendAllText("new_raw_names.txt", text + Environment.NewLine);
+                                                prevName = text;
+                                                flag = false;
+                                                break;
+                                            }
+                                        }
+                                        if (flag)
+                                        {
+                                            Console.WriteLine("Failed");
+                                        }
+                                        break;
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
 
         private static void Start()
         {
