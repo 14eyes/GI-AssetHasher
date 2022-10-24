@@ -156,7 +156,7 @@ namespace GI_AssetHasher
 
                                 if (nextSubAssets != null)
                                 {
-                                    Console.WriteLine("Next asset: " + nextSubAssets.First(x=> x.Name is not ""));
+                                    Console.WriteLine("Next asset: " + nextSubAssets.First(x=> x.Name is not "").Name);
                                 }
                             }
                             var flag = true;
