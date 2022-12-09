@@ -11,12 +11,12 @@ namespace GI_AssetHasher
     {
         public static ulong GetPathHash(string path)
         {
-            byte[] bytes = Encoding.ASCII.GetBytes(path);
-            byte[] array = new byte[(path.Length >> 8) + 1 << 8];
-            Array.Copy(bytes, 0, array, 0, bytes.Length);
+            Span<byte> bytes = stackalloc byte[(path.Length >> 8) + 1 << 8];
+            Encoding.ASCII.GetBytes(path, bytes);
+
             using (MD5 md5 = MD5.Create())
             {
-                byte[] hash = md5.ComputeHash(array);
+                byte[] hash = md5.ComputeHash(bytes);
                 ulong num = 0UL;
                 for (int i = 4; i >= 0; i--)
                 {
