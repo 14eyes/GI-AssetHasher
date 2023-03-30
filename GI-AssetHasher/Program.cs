@@ -168,6 +168,7 @@ namespace GI_AssetHasher
                                     case "skip":
                                         Console.Clear();
                                         Console.WriteLine("Skipping...");
+                                        flag = false;
                                         break;
                                     case "exit":
                                         Console.Clear();
@@ -193,7 +194,6 @@ namespace GI_AssetHasher
                                         }
                                         break;
                                 }
-                                break;
                             }
                         }
                     }
